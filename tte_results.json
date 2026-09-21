@@ -1,0 +1,79 @@
+{
+  "ticker": "TTE",
+  "peers": [
+    "XOM",
+    "CVX",
+    "SHEL",
+    "BP",
+    "E",
+    "COP",
+    "EQNR"
+  ],
+  "current_price": 90.82,
+  "dcf": {
+    "value_per_share_base": 86.80375981322709,
+    "enterprise_value_m": 227671.53905156298,
+    "equity_value_m": 191752.53905156298,
+    "wacc": 0.07492556368171438,
+    "ebit_margin_base": 0.12447877369340093,
+    "terminal_growth_base": 0.02
+  },
+  "scenarios": {
+    "bear": 47.64492080680372,
+    "base": 86.80375981322709,
+    "bull": 141.7810871452604
+  },
+  "comps": {
+    "average_value_per_share": 125.06110754003481,
+    "methods": [
+      {
+        "Méthode": "EV/EBITDA",
+        "Multiple médian peers": 8.04,
+        "Valeur implicite": 312386159999.99994
+      },
+      {
+        "Méthode": "EV/Sales",
+        "Multiple médian peers": 1.969,
+        "Valeur implicite": 359035336000.0
+      },
+      {
+        "Méthode": "P/E",
+        "Multiple médian peers": 17.460926,
+        "Valeur implicite": 229209575602.0
+      }
+    ]
+  },
+  "consensus": {
+    "target_mean": 96.7,
+    "target_median": 96.5,
+    "target_low": 81.0,
+    "target_high": 108.0,
+    "num_analysts": 10,
+    "recommendation": "buy"
+  },
+  "recommendation": {
+    "label": "Conserver (Hold)",
+    "avg_upside": 0.010260734492551778,
+    "upsides": {
+      "DCF": -0.044221979594504565,
+      "Consensus analystes": 0.06474344857960812
+    },
+    "excluded": {
+      "Comparables": 0.37702166417127086
+    }
+  },
+  "football_field": {
+    "DCF (Bear-Bull)": [
+      47.64492080680372,
+      141.7810871452604
+    ],
+    "Comparables (min-max)": [
+      103.7600495193315,
+      146.27035949876964
+    ],
+    "52 semaines (marché)": [
+      57.39,
+      94.17
+    ]
+  }
+}

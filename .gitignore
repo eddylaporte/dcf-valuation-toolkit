@@ -1,0 +1,20 @@
+# Environnement virtuel
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Fichiers générés par le script que tu ne veux pas committer par défaut :
+# ajoute-les ici un par un si besoin (ex: tsm_valuation_output.xlsx) plutôt
+# qu'un motif générique, puisque certains .xlsx/.docx (MCD, KO) sont au
+# contraire volontairement committés comme livrables téléchargeables.

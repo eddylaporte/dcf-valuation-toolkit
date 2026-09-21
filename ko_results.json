@@ -1,0 +1,78 @@
+{
+  "ticker": "KO",
+  "peers": [
+    "PEP",
+    "KDP",
+    "MNST",
+    "CELH",
+    "FIZZ",
+    "STZ"
+  ],
+  "current_price": 88.25,
+  "dcf": {
+    "value_per_share_base": 54.2034838612625,
+    "enterprise_value_m": 268435.1479948866,
+    "equity_value_m": 233213.1479948866,
+    "wacc": 0.055585323423639074,
+    "ebit_margin_base": 0.29841730376196735,
+    "terminal_growth_base": 0.02
+  },
+  "scenarios": {
+    "bear": 34.02049351586853,
+    "base": 54.2034838612625,
+    "bull": 87.82191167885269
+  },
+  "comps": {
+    "average_value_per_share": 49.15098676461679,
+    "methods": [
+      {
+        "Méthode": "EV/EBITDA",
+        "Multiple médian peers": 12.637,
+        "Valeur implicite": 236337174000.0
+      },
+      {
+        "Méthode": "EV/Sales",
+        "Multiple médian peers": 3.1734999999999998,
+        "Valeur implicite": 152140763500.0
+      },
+      {
+        "Méthode": "P/E",
+        "Multiple médian peers": 24.138983500000002,
+        "Valeur implicite": 316389656734.5
+      }
+    ]
+  },
+  "consensus": {
+    "target_mean": 94.69565,
+    "target_median": 96.0,
+    "target_low": 75.0,
+    "target_high": 104.0,
+    "num_analysts": 23,
+    "recommendation": "buy"
+  },
+  "recommendation": {
+    "label": "Vente (Sell)",
+    "avg_upside": -0.4144222627428935,
+    "upsides": {
+      "DCF": -0.38579621686954674,
+      "Comparables": -0.44304830861624034
+    },
+    "excluded": {
+      "Consensus analystes": 0.07303852691218131
+    }
+  },
+  "football_field": {
+    "DCF (Bear-Bull)": [
+      34.02049351586853,
+      87.82191167885269
+    ],
+    "Comparables (min-max)": [
+      27.17430112726736,
+      73.53539798302825
+    ],
+    "52 semaines (marché)": [
+      65.35,
+      92.49
+    ]
+  }
+}

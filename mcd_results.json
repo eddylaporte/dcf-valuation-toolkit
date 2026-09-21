@@ -1,0 +1,79 @@
+{
+  "ticker": "MCD",
+  "peers": [
+    "YUM",
+    "QSR",
+    "SBUX",
+    "WEN",
+    "DPZ",
+    "CMG",
+    "DRI"
+  ],
+  "current_price": 248.24,
+  "dcf": {
+    "value_per_share_base": 281.35264143811105,
+    "enterprise_value_m": 253136.82000469495,
+    "equity_value_m": 199096.82000469495,
+    "wacc": 0.054031223978210655,
+    "ebit_margin_base": 0.4596573584278114,
+    "terminal_growth_base": 0.02
+  },
+  "scenarios": {
+    "bear": 170.58945483622927,
+    "base": 281.35264143811105,
+    "bull": 469.2505907907117
+  },
+  "comps": {
+    "average_value_per_share": 168.89586583105896,
+    "methods": [
+      {
+        "Méthode": "EV/EBITDA",
+        "Multiple médian peers": 14.989,
+        "Valeur implicite": 220008542000.0
+      },
+      {
+        "Méthode": "EV/Sales",
+        "Multiple médian peers": 3.341,
+        "Valeur implicite": 89822785000.0
+      },
+      {
+        "Méthode": "P/E",
+        "Multiple médian peers": 18.311558,
+        "Valeur implicite": 156801871154.0
+      }
+    ]
+  },
+  "consensus": {
+    "target_mean": 311.5484,
+    "target_median": 305.0,
+    "target_low": 250.0,
+    "target_high": 407.0,
+    "num_analysts": 31,
+    "recommendation": "buy"
+  },
+  "recommendation": {
+    "label": "Achat (Buy)",
+    "avg_upside": 0.19420931646412953,
+    "upsides": {
+      "DCF": 0.13338962873876506,
+      "Consensus analystes": 0.25502900418949404
+    },
+    "excluded": {
+      "Comparables": -0.3196267087050477
+    }
+  },
+  "football_field": {
+    "DCF (Bear-Bull)": [
+      170.58945483622927,
+      469.2505907907117
+    ],
+    "Comparables (min-max)": [
+      50.56625755009353,
+      234.5375867190191
+    ],
+    "52 semaines (marché)": [
+      247.65,
+      341.75
+    ]
+  }
+}
