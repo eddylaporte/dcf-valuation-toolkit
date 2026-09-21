@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portfolio de valorisation — DCF &amp; Comparables</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #10233F;
+  --ink-soft: #4B5872;
+  --ink-faint: #8590A3;
+  --paper: #F3F5F7;
+  --card: #FFFFFF;
+  --line: #DADFE6;
+  --gold: #96762A;
+  --buy: #2F6F4A;
+  --hold: #6B6152;
+  --sell: #93342A;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+}
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --ink: #E7EBF2; --ink-soft: #AEB8CA; --ink-faint: #6E7893;
+    --paper: #0D1420; --card: #161F2E; --line: #2A3547;
+    --gold: #D2B65E; --buy: #6FBF8E; --hold: #C9BDA6; --sell: #E08C80;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #E7EBF2; --ink-soft: #AEB8CA; --ink-faint: #6E7893;
+  --paper: #0D1420; --card: #161F2E; --line: #2A3547;
+  --gold: #D2B65E; --buy: #6FBF8E; --hold: #C9BDA6; --sell: #E08C80;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  font-variant-numeric: tabular-nums;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 1.25rem; margin-bottom: 1.5rem; }
+.masthead h1 { font-family: var(--font-serif); font-weight: 600; font-size: 1.7rem; margin: 0 0 0.3rem; letter-spacing: -0.01em; }
+.masthead p { margin: 0; color: var(--ink-soft); font-size: 0.92rem; max-width: 54ch; }
+.masthead .byline { margin-top: 0.6rem; font-size: 0.85rem; color: var(--ink-faint); }
+
+.intro { font-family: var(--font-serif); font-size: 1.02rem; line-height: 1.75; color: var(--ink-soft); max-width: 62ch; margin-bottom: 2rem; }
+
+.tickerstrip { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--line); margin-bottom: 2rem; }
+.tickerstrip button {
+  font-family: var(--font-sans); font-size: 0.87rem; font-weight: 500;
+  padding: 8px 14px; border: none; border-bottom: 2px solid transparent;
+  background: none; color: var(--ink-faint); cursor: pointer; margin-bottom: -1px;
+}
+.tickerstrip button[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--gold); }
+
+.hero { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-end; justify-content: space-between; margin-bottom: 1.75rem; }
+.hero .name { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 600; margin: 0; }
+.hero .sector { color: var(--ink-faint); font-size: 0.85rem; margin: 0.15rem 0 0; }
+.hero .price { text-align: right; }
+.hero .price .lbl { font-size: 0.78rem; color: var(--ink-faint); }
+.hero .price .val { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 600; }
+
+.reco { display: flex; align-items: center; gap: 7px; font-size: 0.86rem; font-weight: 500; }
+.downloads { font-size: 0.85rem; margin: -0.75rem 0 1.75rem; }
+.downloads a { color: var(--gold); text-decoration: none; border-bottom: 1px solid currentColor; }
+.downloads a:hover { opacity: 0.75; }
+.downloads .sep { color: var(--ink-faint); margin: 0 8px; }
+.reco .swatch { width: 9px; height: 9px; display: inline-block; }
+.reco.buy .swatch { background: var(--buy); } .reco.buy span.lbl { color: var(--buy); }
+.reco.hold .swatch { background: var(--hold); } .reco.hold span.lbl { color: var(--hold); }
+.reco.sell .swatch { background: var(--sell); } .reco.sell span.lbl { color: var(--sell); }
+
+.scenario { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 1.4rem 0; margin-bottom: 1.75rem; }
+.scenario .toprow { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.9rem; }
+.scenario .toprow span:first-child { font-size: 0.82rem; color: var(--ink-soft); }
+.scenario .hero-number { font-family: var(--font-serif); font-size: 2.5rem; font-weight: 600; line-height: 1; }
+.scenario .upside { font-size: 0.88rem; margin-top: 0.35rem; }
+.segmented { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; margin-top: 1.1rem; }
+.segmented button {
+  flex: 1; font-family: var(--font-sans); font-size: 0.86rem; font-weight: 500; padding: 9px 0;
+  border: none; background: var(--card); color: var(--ink-soft); cursor: pointer; border-right: 1px solid var(--line);
+}
+.segmented button:last-child { border-right: none; }
+.segmented button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin-bottom: 0.5rem; border-top: 1px solid var(--line); }
+.metric { padding: 1rem 1.1rem 1rem 0; border-right: 1px solid var(--line); }
+.metric:last-child { border-right: none; }
+.metric .lbl { font-size: 0.76rem; color: var(--ink-faint); margin-bottom: 0.3rem; }
+.metric .val { font-family: var(--font-serif); font-size: 1.25rem; font-weight: 600; }
+.metric .sub { font-size: 0.78rem; color: var(--ink-soft); margin-top: 0.2rem; }
+.metric .fn { font-size: 0.76rem; color: var(--gold); margin-top: 0.3rem; }
+
+h2.section { font-family: var(--font-serif); font-size: 1.05rem; font-weight: 600; margin: 2rem 0 0.9rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+
+.ffwrap { padding: 0.4rem 0 0; }
+.ffwrap svg text { font-family: var(--font-sans); }
+
+.peers { font-size: 0.92rem; color: var(--ink-soft); line-height: 1.8; }
+
+.methodology p { font-size: 0.92rem; color: var(--ink-soft); max-width: 68ch; }
+
+.assumptions { font-size: 0.85rem; color: var(--ink-soft); }
+.assumptions table { border-collapse: collapse; width: 100%; margin-top: 0.5rem; }
+.assumptions td { padding: 5px 0; border-bottom: 1px solid var(--line); }
+.assumptions td:last-child { text-align: right; color: var(--ink); font-weight: 500; }
+
+footer { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: 0.78rem; color: var(--ink-faint); }
+footer p { margin: 0.35rem 0; max-width: 62ch; }
+footer .fn-mark { color: var(--gold); }
+.signoff { font-family: var(--font-serif); font-style: italic; color: var(--ink-soft); margin-top: 1rem; }
+
+@media (max-width: 480px) {
+  .hero { flex-direction: column; align-items: flex-start; }
+  .hero .price { text-align: left; }
+  .scenario .hero-number { font-size: 2rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <h1>Portfolio de valorisation — DCF &amp; Comparables</h1>
+    <p>Deux sociétés valorisées par flux de trésorerie actualisés (3 scénarios), comparables boursiers (6-7 pairs par société) et cross-check au consensus analystes.</p>
+    <p class="byline">Eddy Laporte — candidature stage M&amp;A / Portfolio Management</p>
+  </div>
+
+  <p class="intro">
+    Cet outil valorise une entreprise selon trois méthodes indépendantes — DCF à trois scénarios, comparables boursiers, consensus des analystes — puis les confronte plutôt que de les moyenner aveuglément : quand une méthode diverge trop du DCF, elle est exclue de la recommandation, et le pourquoi est documenté plutôt que caché. Choisis une société ci-dessous, bascule entre Bear, Base et Bull, et regarde où les trois approches s'accordent — ou pas.
+  </p>
+
+  <div class="tickerstrip" id="tickerstrip" role="tablist" aria-label="Choisir une société"></div>
+
+  <div class="hero">
+    <div>
+      <p class="name" id="companyName"></p>
+      <p class="sector" id="companySector"></p>
+    </div>
+    <div class="price">
+      <div class="lbl">Cours actuel</div>
+      <div class="val" id="currentPrice"></div>
+    </div>
+  </div>
+
+  <p class="downloads">
+    <a id="downloadXlsx" href="#" target="_blank" rel="noopener">Télécharger le classeur Excel</a>
+    <span class="sep">·</span>
+    <a id="downloadDocx" href="#" target="_blank" rel="noopener">Télécharger la note de synthèse (Word)</a>
+  </p>
+
+  <div class="scenario">
+    <div class="toprow">
+      <span>Valeur par action — DCF</span>
+      <span class="reco" id="recoBadge"><span class="swatch"></span><span class="lbl"></span></span>
+    </div>
+    <div class="hero-number" id="scenarioValue"></div>
+    <div class="upside" id="scenarioUpside"></div>
+    <div class="segmented" id="scenarioToggle" role="tablist" aria-label="Choisir un scénario">
+      <button data-scenario="bear" aria-pressed="false">Bear</button>
+      <button data-scenario="base" aria-pressed="true">Base</button>
+      <button data-scenario="bull" aria-pressed="false">Bull</button>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="lbl">Comparables (moyenne)</div>
+      <div class="val" id="compsValue"></div>
+      <div class="sub" id="compsUpside"></div>
+      <div class="fn" id="compsWarn" style="display:none;">Exclu de la reco — voir note*</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">Consensus analystes</div>
+      <div class="val" id="consensusValue"></div>
+      <div class="sub" id="consensusSub"></div>
+      <div class="fn" id="consensusWarn" style="display:none;">Exclu de la reco — voir note*</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">WACC</div>
+      <div class="val" id="waccValue"></div>
+      <div class="sub" id="waccSub"></div>
+    </div>
+  </div>
+
+  <h2 class="section">Fourchettes de valorisation</h2>
+  <div class="ffwrap"><div id="footballField"></div></div>
+
+  <h2 class="section">Comparables retenus</h2>
+  <p class="peers" id="peersList"></p>
+
+  <h2 class="section">Hypothèses clés</h2>
+  <div class="assumptions">
+    <table>
+      <tr><td>Marge d'EBIT retenue (moyenne historique 3 ans)</td><td id="ebitMargin"></td></tr>
+      <tr><td>Croissance perpétuelle (scénario Base)</td><td id="terminalGrowth"></td></tr>
+      <tr><td>Valeur d'entreprise (scénario Base)</td><td id="evValue"></td></tr>
+    </table>
+  </div>
+
+  <h2 class="section">Méthodologie</h2>
+  <div class="methodology">
+    <p>Extraction et nettoyage des états financiers, DCF à trois scénarios (Bear/Base/Bull pilotant la croissance du chiffre d'affaires, la marge d'EBIT et la croissance terminale), valorisation par comparables boursiers (médiane EV/EBITDA, EV/Sales, P/E des pairs), et cross-check au consensus des analystes.</p>
+  </div>
+
+  <footer>
+    <p><span class="fn-mark">*</span> La recommandation prend le DCF comme ancre et exclut de la moyenne toute méthode (comparables ou consensus) qui s'en écarte de plus de 30 points — pour éviter qu'un multiple de pair ponctuellement faussé, par exemple, ne fasse basculer la conclusion à lui seul.</p>
+    <p>Exercice de portfolio personnel — pas une recommandation d'investissement. Code source et modèles complets sur <a href="https://github.com/eddylaporte/dcf-valuation-toolkit" target="_blank" rel="noopener" style="color: inherit;">GitHub</a>.</p>
+    <p class="signoff">— E.L.</p>
+  </footer>
+
+</div>
+
+<script>
+const COMPANIES = {
+  MCD: { name: "McDonald's", sector: "Restauration" },
+  KO:  { name: "Coca-Cola", sector: "Boissons" },
+};
+
+const PEER_NAMES = {
+  YUM: "Yum! Brands", QSR: "Restaurant Brands International", SBUX: "Starbucks",
+  WEN: "Wendy's", DPZ: "Domino's Pizza", CMG: "Chipotle Mexican Grill", DRI: "Darden Restaurants",
+  PEP: "PepsiCo", KDP: "Keurig Dr Pepper", MNST: "Monster Beverage",
+  CELH: "Celsius Holdings", FIZZ: "National Beverage", STZ: "Constellation Brands",
+};
+
+const DATA = {
+  MCD: {"peers":["YUM","QSR","SBUX","WEN","DPZ","CMG","DRI"],"current_price":248.24,"dcf":{"value_per_share_base":281.35264143811105,"enterprise_value_m":253136.82000469495,"wacc":0.054031223978210655,"ebit_margin_base":0.4596573584278114,"terminal_growth_base":0.02},"scenarios":{"bear":170.58945483622927,"base":281.35264143811105,"bull":469.2505907907117},"comps":{"average_value_per_share":168.89586583105896},"consensus":{"target_mean":311.5484,"target_low":250.0,"target_high":407.0,"num_analysts":31,"recommendation":"buy"},"recommendation":{"label":"Achat (Buy)","avg_upside":0.19420931646412953,"excluded":["Comparables"]},"football_field":{"DCF (Bear-Bull)":[170.58945483622927,469.2505907907117],"Comparables (min-max)":[50.56625755009353,234.5375867190191],"52 semaines (marché)":[247.65,341.75]}},
+  KO: {"peers":["PEP","KDP","MNST","CELH","FIZZ","STZ"],"current_price":88.25,"dcf":{"value_per_share_base":54.2034838612625,"enterprise_value_m":268435.1479948866,"wacc":0.055585323423639074,"ebit_margin_base":0.29841730376196735,"terminal_growth_base":0.02},"scenarios":{"bear":34.02049351586853,"base":54.2034838612625,"bull":87.82191167885269},"comps":{"average_value_per_share":49.15098676461679},"consensus":{"target_mean":94.69565,"target_low":75.0,"target_high":104.0,"num_analysts":23,"recommendation":"buy"},"recommendation":{"label":"Vente (Sell)","avg_upside":-0.4144222627428935,"excluded":["Consensus analystes"]},"football_field":{"DCF (Bear-Bull)":[34.02049351586853,87.82191167885269],"Comparables (min-max)":[27.17430112726736,73.53539798302825],"52 semaines (marché)":[65.35,92.49]}}
+};
+
+const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/eddylaporte/dcf-valuation-toolkit/main/";
+let currentTicker = "MCD";
+let currentScenario = "base";
+
+function fmtUSD(v) {
+  return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtPct(v) {
+  const s = v >= 0 ? "+" : "";
+  return s + (v * 100).toFixed(1) + "%";
+}
+function recoClass(label) {
+  if (label.startsWith("Achat")) return "buy";
+  if (label.startsWith("Vente")) return "sell";
+  return "hold";
+}
+
+function buildTickerStrip() {
+  const el = document.getElementById("tickerstrip");
+  el.innerHTML = "";
+  Object.keys(DATA).forEach(function (t) {
+    const btn = document.createElement("button");
+    btn.textContent = t;
+    btn.setAttribute("role", "tab");
+    btn.setAttribute("aria-pressed", t === currentTicker ? "true" : "false");
+    btn.addEventListener("click", function () { currentTicker = t; render(); });
+    el.appendChild(btn);
+  });
+}
+
+function buildFootballField(ff, price) {
+  const rows = Object.keys(ff);
+  const allVals = rows.flatMap(function (k) { return ff[k]; }).concat([price]);
+  const min = Math.min.apply(null, allVals) * 0.92;
+  const max = Math.max.apply(null, allVals) * 1.08;
+  const W = 640, rowH = 46, padTop = 30, padBottom = 34, padLeft = 14, padRight = 14;
+  const H = padTop + rows.length * rowH + padBottom;
+  const chartW = W - padLeft - padRight;
+  function x(v) { return padLeft + ((v - min) / (max - min)) * chartW; }
+
+  const colors = { "DCF (Bear-Bull)": "var(--ink)", "Comparables (min-max)": "var(--gold)", "52 semaines (marché)": "var(--ink-faint)" };
+
+  let ticks = "";
+  const tickVals = [min, (min + max) / 2, max];
+  tickVals.forEach(function (tv) {
+    const tx = x(tv);
+    ticks += '<line x1="' + tx + '" y1="' + padTop + '" x2="' + tx + '" y2="' + (H - padBottom + 4) + '" stroke="var(--line)" stroke-width="1"/>';
+    ticks += '<text x="' + tx + '" y="' + (H - padBottom + 18) + '" text-anchor="middle" font-size="11" fill="var(--ink-faint)">' + fmtUSD(tv) + '</text>';
+  });
+
+  let bars = "";
+  rows.forEach(function (label, i) {
+    const y = padTop + i * rowH;
+    const lo = x(ff[label][0]), hi = x(ff[label][1]);
+    bars += '<text x="' + padLeft + '" y="' + (y + 12) + '" font-size="12" fill="var(--ink-soft)">' + label + '</text>';
+    bars += '<rect x="' + lo + '" y="' + (y + 16) + '" width="' + (hi - lo) + '" height="14" rx="7" fill="' + colors[label] + '" opacity="0.85"/>';
+    bars += '<text x="' + lo + '" y="' + (y + 40) + '" font-size="10.5" fill="var(--ink-faint)">' + fmtUSD(ff[label][0]) + '</text>';
+    bars += '<text x="' + hi + '" y="' + (y + 40) + '" text-anchor="end" font-size="10.5" fill="var(--ink-faint)">' + fmtUSD(ff[label][1]) + '</text>';
+  });
+
+  const px = x(price);
+  const marker = '<line x1="' + px + '" y1="' + (padTop - 6) + '" x2="' + px + '" y2="' + (H - padBottom) + '" stroke="var(--sell)" stroke-width="1.5" stroke-dasharray="4,3"/>' +
+    '<text x="' + px + '" y="' + (padTop - 10) + '" text-anchor="middle" font-size="11" fill="var(--sell)" font-weight="500">Cours actuel</text>';
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="' + H + '" role="img" aria-label="Fourchettes de valorisation">' +
+    ticks + bars + marker + '</svg>';
+}
+
+function render() {
+  const d = DATA[currentTicker];
+  const meta = COMPANIES[currentTicker];
+
+  document.querySelectorAll("#tickerstrip button").forEach(function (b) {
+    b.setAttribute("aria-pressed", b.textContent === currentTicker ? "true" : "false");
+  });
+
+  document.getElementById("companyName").textContent = meta.name + " (" + currentTicker + ")";
+  document.getElementById("companySector").textContent = meta.sector;
+  document.getElementById("currentPrice").textContent = fmtUSD(d.current_price);
+
+  const tickerLower = currentTicker.toLowerCase();
+  document.getElementById("downloadXlsx").href = GITHUB_RAW_BASE + tickerLower + "_valuation_output.xlsx";
+  document.getElementById("downloadDocx").href = GITHUB_RAW_BASE + tickerLower + "_note_synthese.docx";
+
+  const reco = d.recommendation;
+  const badge = document.getElementById("recoBadge");
+  badge.className = "reco " + recoClass(reco.label);
+  badge.querySelector(".lbl").textContent = reco.label;
+
+  const scenVal = d.scenarios[currentScenario];
+  document.getElementById("scenarioValue").textContent = fmtUSD(scenVal);
+  const upside = (scenVal - d.current_price) / d.current_price;
+  document.getElementById("scenarioUpside").textContent = fmtPct(upside) + " vs cours actuel (scénario " + currentScenario.charAt(0).toUpperCase() + currentScenario.slice(1) + ")";
+  document.getElementById("scenarioUpside").style.color = upside >= 0 ? "var(--buy)" : "var(--sell)";
+
+  document.querySelectorAll("#scenarioToggle button").forEach(function (b) {
+    b.setAttribute("aria-pressed", b.dataset.scenario === currentScenario ? "true" : "false");
+  });
+
+  const compsUp = (d.comps.average_value_per_share - d.current_price) / d.current_price;
+  document.getElementById("compsValue").textContent = fmtUSD(d.comps.average_value_per_share);
+  document.getElementById("compsUpside").textContent = fmtPct(compsUp) + " vs cours actuel";
+  document.getElementById("compsWarn").style.display = d.recommendation.excluded.includes("Comparables") ? "block" : "none";
+
+  document.getElementById("consensusValue").textContent = fmtUSD(d.consensus.target_mean);
+  document.getElementById("consensusSub").textContent = d.consensus.num_analysts + " analystes, range " + fmtUSD(d.consensus.target_low) + "–" + fmtUSD(d.consensus.target_high);
+  document.getElementById("consensusWarn").style.display = d.recommendation.excluded.includes("Consensus analystes") ? "block" : "none";
+
+  document.getElementById("waccValue").textContent = (d.dcf.wacc * 100).toFixed(1) + "%";
+  document.getElementById("waccSub").textContent = "Scénario Base";
+
+  document.getElementById("footballField").innerHTML = buildFootballField(d.football_field, d.current_price);
+
+  document.getElementById("peersList").textContent = d.peers.map(function (p) { return PEER_NAMES[p] || p; }).join(", ");
+
+  document.getElementById("ebitMargin").textContent = (d.dcf.ebit_margin_base * 100).toFixed(1) + "%";
+  document.getElementById("terminalGrowth").textContent = (d.dcf.terminal_growth_base * 100).toFixed(1) + "%";
+  document.getElementById("evValue").textContent = "$" + Math.round(d.dcf.enterprise_value_m).toLocaleString("en-US") + " M";
+}
+
+buildTickerStrip();
+document.querySelectorAll("#scenarioToggle button").forEach(function (b) {
+  b.addEventListener("click", function () { currentScenario = b.dataset.scenario; render(); });
+});
+render();
+</script>
+</body>
+</html>
