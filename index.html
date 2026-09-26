@@ -72,6 +72,7 @@ body {
 .hero .price .val { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 600; }
 
 .reco { display: flex; align-items: center; gap: 7px; font-size: 0.86rem; font-weight: 500; }
+.upside-tag { font-size: 0.86rem; font-weight: 600; }
 .downloads { font-size: 0.85rem; margin: -0.75rem 0 1.75rem; }
 .downloads a { color: var(--gold); text-decoration: none; border-bottom: 1px solid currentColor; }
 .downloads a:hover { opacity: 0.75; }
@@ -138,7 +139,7 @@ footer .fn-mark { color: var(--gold); }
   </div>
 
   <p class="intro">
-    Cet outil valorise une entreprise selon trois méthodes indépendantes — DCF à trois scénarios, comparables boursiers, consensus des analystes — puis les confronte plutôt que de les moyenner aveuglément : quand une méthode diverge trop du DCF, elle est exclue de la recommandation, et le pourquoi est documenté plutôt que caché. Choisis une société ci-dessous, bascule entre Bear, Base et Bull, et regarde où les trois approches s'accordent — ou pas.
+    Cet outil valorise une entreprise selon trois méthodes indépendantes — DCF à trois scénarios, comparables boursiers, consensus des analystes — sans en écarter aucune : la fourchette de valorisation couvre l'ensemble, et le prix cible moyenne les trois à parts égales. Quand elles divergent fortement, l'écart est expliqué qualitativement plutôt que corrigé mécaniquement. Choisis une société ci-dessous, bascule entre Bear, Base et Bull sur le DCF, et regarde où les méthodes s'accordent — ou pas.
   </p>
 
   <div class="tickerstrip" id="tickerstrip" role="tablist" aria-label="Choisir une société"></div>
@@ -162,8 +163,16 @@ footer .fn-mark { color: var(--gold); }
 
   <div class="scenario">
     <div class="toprow">
-      <span>Valeur par action — DCF</span>
-      <span class="reco" id="recoBadge"><span class="swatch"></span><span class="lbl"></span></span>
+      <span>Prix cible</span>
+      <span class="upside-tag" id="targetUpside"></span>
+    </div>
+    <div class="hero-number" id="targetPrice"></div>
+    <div class="upside" id="rangeLine"></div>
+  </div>
+
+  <div class="scenario">
+    <div class="toprow">
+      <span>DCF — scénario</span>
     </div>
     <div class="hero-number" id="scenarioValue"></div>
     <div class="upside" id="scenarioUpside"></div>
@@ -179,13 +188,11 @@ footer .fn-mark { color: var(--gold); }
       <div class="lbl">Comparables (moyenne)</div>
       <div class="val" id="compsValue"></div>
       <div class="sub" id="compsUpside"></div>
-      <div class="fn" id="compsWarn" style="display:none;">Exclu de la reco — voir note*</div>
     </div>
     <div class="metric">
       <div class="lbl">Consensus analystes</div>
       <div class="val" id="consensusValue"></div>
       <div class="sub" id="consensusSub"></div>
-      <div class="fn" id="consensusWarn" style="display:none;">Exclu de la reco — voir note*</div>
     </div>
     <div class="metric">
       <div class="lbl">WACC</div>
@@ -215,7 +222,7 @@ footer .fn-mark { color: var(--gold); }
   </div>
 
   <footer>
-    <p><span class="fn-mark">*</span> La recommandation prend le DCF comme ancre et exclut de la moyenne toute méthode (comparables ou consensus) qui s'en écarte de plus de 30 points — pour éviter qu'un multiple de pair ponctuellement faussé, par exemple, ne fasse basculer la conclusion à lui seul.</p>
+    <p><span class="fn-mark">*</span> Le prix cible moyenne à parts égales le DCF (scénario Base), la moyenne des comparables et le consensus analystes — aucune méthode n'est écartée sur la base d'un écart mécanique. La fourchette couvre l'amplitude Bear/Bull du DCF, les bornes des comparables, le range du consensus et le range 52 semaines.</p>
     <p>Exercice de portfolio personnel — pas une recommandation d'investissement. Code source et modèles complets sur <a href="https://github.com/eddylaporte/dcf-valuation-toolkit" target="_blank" rel="noopener" style="color: inherit;">GitHub</a>.</p>
     <p class="signoff">— E.L.</p>
   </footer>
@@ -236,8 +243,8 @@ const PEER_NAMES = {
 };
 
 const DATA = {
-  MCD: {"peers":["YUM","QSR","SBUX","WEN","DPZ","CMG","DRI"],"current_price":248.24,"dcf":{"value_per_share_base":281.35264143811105,"enterprise_value_m":253136.82000469495,"wacc":0.054031223978210655,"ebit_margin_base":0.4596573584278114,"terminal_growth_base":0.02},"scenarios":{"bear":170.58945483622927,"base":281.35264143811105,"bull":469.2505907907117},"comps":{"average_value_per_share":168.89586583105896},"consensus":{"target_mean":311.5484,"target_low":250.0,"target_high":407.0,"num_analysts":31,"recommendation":"buy"},"recommendation":{"label":"Achat (Buy)","avg_upside":0.19420931646412953,"excluded":["Comparables"]},"football_field":{"DCF (Bear-Bull)":[170.58945483622927,469.2505907907117],"Comparables (min-max)":[50.56625755009353,234.5375867190191],"52 semaines (marché)":[247.65,341.75]}},
-  KO: {"peers":["PEP","KDP","MNST","CELH","FIZZ","STZ"],"current_price":88.25,"dcf":{"value_per_share_base":54.2034838612625,"enterprise_value_m":268435.1479948866,"wacc":0.055585323423639074,"ebit_margin_base":0.29841730376196735,"terminal_growth_base":0.02},"scenarios":{"bear":34.02049351586853,"base":54.2034838612625,"bull":87.82191167885269},"comps":{"average_value_per_share":49.15098676461679},"consensus":{"target_mean":94.69565,"target_low":75.0,"target_high":104.0,"num_analysts":23,"recommendation":"buy"},"recommendation":{"label":"Vente (Sell)","avg_upside":-0.4144222627428935,"excluded":["Consensus analystes"]},"football_field":{"DCF (Bear-Bull)":[34.02049351586853,87.82191167885269],"Comparables (min-max)":[27.17430112726736,73.53539798302825],"52 semaines (marché)":[65.35,92.49]}}
+  MCD: {"peers":["YUM","QSR","SBUX","WEN","DPZ","CMG","DRI"],"current_price":236.5,"dcf":{"value_per_share_base":196.84657451494314,"enterprise_value_m":193336.80864387902,"wacc":0.06458659046576373,"ebit_margin_base":0.4596979495533564,"terminal_growth_base":0.02},"scenarios":{"bear":123.16394641194393,"base":196.84657451494314,"bull":302.93564388536964},"comps":{"average_value_per_share":164.55891045372437},"consensus":{"target_mean":300.27585,"target_low":250.0,"target_high":390.0,"num_analysts":29,"recommendation":"buy"},"valuation_summary":{"target_price":220.5604449895558,"range_low":49.46448046021525,"range_high":390.0,"upside_vs_price":-0.0673976956044152},"football_field":{"DCF (Bear-Bull)":[123.16394641194393,302.93564388536964],"Comparables (min-max)":[49.46448046021525,224.18727017237575],"52 semaines (marché)":[234.03,341.75]}},
+  KO: {"peers":["PEP","KDP","MNST","CELH","FIZZ","STZ"],"current_price":87.81,"dcf":{"value_per_share_base":46.72350499714117,"enterprise_value_m":236252.16307307073,"wacc":0.06535024385071164,"ebit_margin_base":0.3025436514056898,"terminal_growth_base":0.025},"scenarios":{"bear":30.02447939955824,"base":46.72350499714117,"bull":72.47063617389195},"comps":{"average_value_per_share":49.03823993705652},"consensus":{"target_mean":94.69565,"target_low":75.0,"target_high":104.0,"num_analysts":23,"recommendation":"buy"},"valuation_summary":{"target_price":63.48579831139923,"range_low":26.59489415998223,"range_high":104.0,"upside_vs_price":-0.27700947145656274},"football_field":{"DCF (Bear-Bull)":[30.02447939955824,72.47063617389195],"Comparables (min-max)":[26.59489415998223,74.83499010799807],"52 semaines (marché)":[65.35,92.49]}}
 };
 
 const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/eddylaporte/dcf-valuation-toolkit/main/";
@@ -250,11 +257,6 @@ function fmtUSD(v) {
 function fmtPct(v) {
   const s = v >= 0 ? "+" : "";
   return s + (v * 100).toFixed(1) + "%";
-}
-function recoClass(label) {
-  if (label.startsWith("Achat")) return "buy";
-  if (label.startsWith("Vente")) return "sell";
-  return "hold";
 }
 
 function buildTickerStrip() {
@@ -324,15 +326,18 @@ function render() {
   document.getElementById("downloadXlsx").href = GITHUB_RAW_BASE + tickerLower + "_valuation_output.xlsx";
   document.getElementById("downloadDocx").href = GITHUB_RAW_BASE + tickerLower + "_note_synthese.docx";
 
-  const reco = d.recommendation;
-  const badge = document.getElementById("recoBadge");
-  badge.className = "reco " + recoClass(reco.label);
-  badge.querySelector(".lbl").textContent = reco.label;
+  const reco = d.valuation_summary;
+  document.getElementById("targetPrice").textContent = fmtUSD(reco.target_price);
+  const targetUp = reco.upside_vs_price;
+  const upEl = document.getElementById("targetUpside");
+  upEl.textContent = fmtPct(targetUp) + " vs cours actuel";
+  upEl.style.color = targetUp >= 0 ? "var(--buy)" : "var(--sell)";
+  document.getElementById("rangeLine").textContent = "Fourchette : " + fmtUSD(reco.range_low) + " – " + fmtUSD(reco.range_high);
 
   const scenVal = d.scenarios[currentScenario];
   document.getElementById("scenarioValue").textContent = fmtUSD(scenVal);
   const upside = (scenVal - d.current_price) / d.current_price;
-  document.getElementById("scenarioUpside").textContent = fmtPct(upside) + " vs cours actuel (scénario " + currentScenario.charAt(0).toUpperCase() + currentScenario.slice(1) + ")";
+  document.getElementById("scenarioUpside").textContent = fmtPct(upside) + " vs cours actuel (" + currentScenario.charAt(0).toUpperCase() + currentScenario.slice(1) + ")";
   document.getElementById("scenarioUpside").style.color = upside >= 0 ? "var(--buy)" : "var(--sell)";
 
   document.querySelectorAll("#scenarioToggle button").forEach(function (b) {
@@ -342,11 +347,9 @@ function render() {
   const compsUp = (d.comps.average_value_per_share - d.current_price) / d.current_price;
   document.getElementById("compsValue").textContent = fmtUSD(d.comps.average_value_per_share);
   document.getElementById("compsUpside").textContent = fmtPct(compsUp) + " vs cours actuel";
-  document.getElementById("compsWarn").style.display = d.recommendation.excluded.includes("Comparables") ? "block" : "none";
 
   document.getElementById("consensusValue").textContent = fmtUSD(d.consensus.target_mean);
   document.getElementById("consensusSub").textContent = d.consensus.num_analysts + " analystes, range " + fmtUSD(d.consensus.target_low) + "–" + fmtUSD(d.consensus.target_high);
-  document.getElementById("consensusWarn").style.display = d.recommendation.excluded.includes("Consensus analystes") ? "block" : "none";
 
   document.getElementById("waccValue").textContent = (d.dcf.wacc * 100).toFixed(1) + "%";
   document.getElementById("waccSub").textContent = "Scénario Base";
