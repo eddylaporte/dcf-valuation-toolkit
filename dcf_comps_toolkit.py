@@ -23,14 +23,16 @@ import logging
 
 from valuation_config import ValuationAssumptions
 from data_extraction import extract_financials, extract_peer_multiples, extract_analyst_consensus
-from data_cleaning import build_clean_dataset, get_latest_value, compute_historical_ebit_margin
+from data_cleaning import build_clean_dataset, get_latest_value, compute_historical_ebit_margin, get_ebit_margin_trend
 from valuation_engine import (
     compute_wacc, project_fcf, run_dcf, run_scenario_dcf, run_comps, comps_per_share,
-    compute_football_field_data, generate_recommendation,
+    compute_football_field_data, compute_peer_implied_ebitda_margin, build_valuation_summary,
+    compute_peer_average_beta, resolve_beta,
 )
 from excel_report import export_to_excel
 from word_report import draft_synthesis_note
 from json_report import export_results_json
+from company_narratives import get_company_narrative
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -65,17 +67,30 @@ def run_valuation(ticker: str, peers: list[str], assumptions: ValuationAssumptio
         shares_outstanding = implied_shares
 
     beta_raw = raw.get("beta")
-    lo, hi = assumptions.beta_plausible_range
-    if beta_raw is None or not (lo <= beta_raw <= hi):
-        logger.warning("Beta brut (%s) hors plage plausible %s : utilisation du beta "
-                       "de repli %.2f. À vérifier/sourcer avant publication.",
-                       beta_raw, assumptions.beta_plausible_range, assumptions.beta_fallback)
-        beta = assumptions.beta_fallback
-    else:
-        beta = beta_raw
+    peer_avg_beta = compute_peer_average_beta(peers_df)
+    beta, beta_note = resolve_beta(beta_raw, peer_avg_beta, assumptions)
+    logger.info("Beta retenu : %.2f — %s", beta, beta_note)
 
-    ebit_margin_note = "Moyenne des 3 derniers exercices (yfinance)"
-    ebit_margin_base = assumptions.ebit_margin_override or compute_historical_ebit_margin(income)
+    narrative = get_company_narrative(ticker)
+    if narrative.get("terminal_growth_override") is not None:
+        override = narrative["terminal_growth_override"]
+        delta_bear = assumptions.terminal_growth_base - assumptions.terminal_growth_bear
+        delta_bull = assumptions.terminal_growth_bull - assumptions.terminal_growth_base
+        assumptions.terminal_growth_base = override
+        assumptions.terminal_growth_bear = override - delta_bear
+        assumptions.terminal_growth_bull = override + delta_bull
+        logger.info("Croissance terminale différenciée pour %s : Base=%.2f%% (Bear=%.2f%%, Bull=%.2f%%)",
+                    ticker, override * 100, assumptions.terminal_growth_bear * 100,
+                    assumptions.terminal_growth_bull * 100)
+    terminal_growth_rationale = narrative.get("terminal_growth_rationale")
+
+    ebit_margin_note = "Moyenne pondérée des 3 derniers exercices (yfinance), poids croissants vers l'exercice le plus récent"
+    ebit_margin_trend = get_ebit_margin_trend(income)
+    if ebit_margin_trend:
+        logger.info("Marges d'EBIT historiques (%d derniers exercices) : %s",
+                    len(ebit_margin_trend), ", ".join(f"{m:.1%}" for _, m in ebit_margin_trend))
+    ebit_margin_simple = compute_historical_ebit_margin(income, weighted=False)
+    ebit_margin_base = assumptions.ebit_margin_override or compute_historical_ebit_margin(income, weighted=True)
     if ebit_margin_base is None:
         raise ValueError(
             "Impossible de déterminer la marge d'EBIT depuis l'historique : "
@@ -83,7 +98,8 @@ def run_valuation(ticker: str, peers: list[str], assumptions: ValuationAssumptio
         )
     if assumptions.ebit_margin_override:
         ebit_margin_note = "Valeur forcée manuellement (ebit_margin_override)"
-    logger.info("Marge d'EBIT retenue (Base) pour les projections : %.1f%%", ebit_margin_base * 100)
+    logger.info("Marge d'EBIT retenue (Base, pondérée) pour les projections : %.1f%% (moyenne simple : %s)",
+                ebit_margin_base * 100, f"{ebit_margin_simple:.1%}" if ebit_margin_simple is not None else "n/a")
 
     logger.info("3/6 — DCF (scénario Base)")
     wacc, cost_of_equity = compute_wacc(beta, market_cap or 0, total_debt or 0, assumptions)
@@ -114,16 +130,21 @@ def run_valuation(ticker: str, peers: list[str], assumptions: ValuationAssumptio
     logger.info("5/6 — Comparables")
     comps_df = run_comps({"revenue": total_revenue, "ebitda": ebitda, "net_income": net_income}, peers_df)
     comps_values = comps_per_share(comps_df, net_debt, shares_outstanding)
-    comps_avg = sum(comps_values) / len(comps_values) if comps_values else None
+    comps_avg = sum(comps_values.values()) / len(comps_values) if comps_values else None
     ff_data = compute_football_field_data(
         raw.get("fifty_two_week_low"), raw.get("fifty_two_week_high"),
         list(scenario_values.values()), comps_values,
     )
-    recommendation = generate_recommendation(
-        dcf_result["value_per_share"], comps_avg, consensus.get("target_mean"), current_price,
+    peer_implied_ebitda_margin = compute_peer_implied_ebitda_margin(peers_df)
+    target_ebitda_margin = (ebitda / total_revenue) if ebitda and total_revenue else None
+
+    valuation_summary = build_valuation_summary(
+        scenario_values, comps_values, consensus,
+        raw.get("fifty_two_week_low"), raw.get("fifty_two_week_high"), current_price,
     )
-    logger.info("Recommandation : %s (upside moyen : %s)", recommendation["label"],
-                f"{recommendation['avg_upside']:+.1%}" if recommendation.get("avg_upside") is not None else "n/a")
+    logger.info("Fourchette de valorisation : %.2f — %.2f | Prix cible : %.2f",
+                valuation_summary["range_low"], valuation_summary["range_high"],
+                valuation_summary["target_price"])
 
     logger.info("6/6 — Export")
     export_to_excel(
@@ -135,13 +156,16 @@ def run_valuation(ticker: str, peers: list[str], assumptions: ValuationAssumptio
         wacc_base=wacc, quote_currency=raw["quote_currency"], consensus=consensus,
         scenario_values=scenario_values, ff_data=ff_data,
     )
-    draft_synthesis_note(ticker, peers, dcf_result, ebit_margin_base, comps_df,
-                          scenario_values, consensus, comps_avg, current_price, recommendation,
-                          path=f"{ticker.lower()}_note_synthese.docx")
+    draft_synthesis_note(
+        ticker, peers, dcf_result, ebit_margin_base, ebit_margin_trend, target_ebitda_margin,
+        comps_df, comps_values, peer_implied_ebitda_margin, scenario_values, consensus,
+        current_price, valuation_summary, beta_note, terminal_growth_rationale, ebit_margin_simple,
+        path=f"{ticker.lower()}_note_synthese.docx",
+    )
     export_results_json(
         path=f"{ticker.lower()}_results.json", ticker=ticker, peers=peers,
         current_price=current_price, dcf_result=dcf_result, scenario_values=scenario_values,
-        comps_df=comps_df, comps_avg=comps_avg, consensus=consensus, recommendation=recommendation,
+        comps_df=comps_df, comps_avg=comps_avg, consensus=consensus, valuation_summary=valuation_summary,
         wacc=wacc, ebit_margin_base=ebit_margin_base, assumptions=assumptions, ff_data=ff_data,
     )
 

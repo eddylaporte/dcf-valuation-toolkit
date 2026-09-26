@@ -37,6 +37,10 @@ class ValuationAssumptions:
 
     beta_fallback: float = 0.95
     beta_plausible_range: tuple = (0.3, 2.5)
+    beta_peer_divergence_threshold: float = 0.35  # écart relatif au-delà duquel le beta
+                                                    # brut est jugé suspect même s'il est
+                                                    # dans la plage plausible générique, et
+                                                    # remplacé par le beta moyen des pairs
 
 
 # Sources par défaut des hypothèses macro/marché — à vérifier et actualiser

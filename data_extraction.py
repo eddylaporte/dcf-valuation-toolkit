@@ -64,7 +64,7 @@ def extract_financials(ticker: str) -> dict:
 
 
 def extract_peer_multiples(peers: list[str]) -> pd.DataFrame:
-    """Récupère les multiples de valorisation (P/E, EV/EBITDA, EV/Sales) des pairs."""
+    """Récupère les multiples de valorisation (P/E, EV/EBITDA, EV/Sales) et le beta des pairs."""
     rows = []
     for ticker in peers:
         try:
@@ -78,6 +78,7 @@ def extract_peer_multiples(peers: list[str]) -> pd.DataFrame:
                 "forward_pe": info.get("forwardPE"),
                 "ev_to_ebitda": info.get("enterpriseToEbitda"),
                 "ev_to_revenue": info.get("enterpriseToRevenue"),
+                "beta": info.get("beta"),
             })
         except Exception as exc:
             logger.warning("Impossible de récupérer %s: %s", ticker, exc)

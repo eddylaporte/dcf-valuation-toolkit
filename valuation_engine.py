@@ -24,6 +24,57 @@ def compute_wacc(beta: float, equity_value: float, debt_value: float,
     return wacc, cost_of_equity
 
 
+def compute_peer_average_beta(peers_df: pd.DataFrame) -> float | None:
+    """Beta moyen des pairs, utilisé comme référence de contrôle indépendante du beta brut."""
+    valid = peers_df["beta"].dropna() if "beta" in peers_df else pd.Series(dtype=float)
+    if valid.empty:
+        return None
+    return float(valid.mean())
+
+
+def resolve_beta(beta_raw: float | None, peer_avg_beta: float | None,
+                  assumptions: ValuationAssumptions) -> tuple[float, str]:
+    """
+    Détermine le beta à retenir pour le WACC, avec une vraie vérification croisée
+    plutôt qu'un simple test de plage plausible générique : un beta techniquement
+    "dans la plage" (ex: 0.3-2.5) peut rester peu crédible pour une société donnée
+    s'il s'écarte fortement du beta moyen de ses propres pairs. Retourne (beta
+    retenu, explication) — l'explication est destinée à la note de synthèse pour
+    que le choix soit traçable, pas une boîte noire.
+    """
+    lo, hi = assumptions.beta_plausible_range
+    out_of_range = beta_raw is None or not (lo <= beta_raw <= hi)
+
+    if out_of_range:
+        if peer_avg_beta is not None:
+            return peer_avg_beta, (
+                f"Beta brut ({beta_raw}) hors plage plausible {assumptions.beta_plausible_range} "
+                f"-> beta moyen des pairs retenu ({peer_avg_beta:.2f})."
+            )
+        return assumptions.beta_fallback, (
+            f"Beta brut ({beta_raw}) hors plage plausible et beta moyen des pairs indisponible "
+            f"-> valeur de repli sectorielle retenue ({assumptions.beta_fallback:.2f}), à vérifier "
+            "manuellement (Bloomberg/Refinitiv) avant toute diffusion."
+        )
+
+    if peer_avg_beta is not None and peer_avg_beta > 0:
+        relative_gap = abs(beta_raw - peer_avg_beta) / peer_avg_beta
+        if relative_gap > assumptions.beta_peer_divergence_threshold:
+            return peer_avg_beta, (
+                f"Beta brut ({beta_raw:.2f}) dans la plage plausible mais s'écarte de {relative_gap:.0%} "
+                f"du beta moyen des pairs ({peer_avg_beta:.2f}) — écart jugé trop important pour être "
+                "retenu tel quel -> beta moyen des pairs retenu par prudence. À vérifier auprès d'une "
+                "source indépendante (Bloomberg/Refinitiv) avant diffusion finale."
+            )
+        return beta_raw, (
+            f"Beta brut ({beta_raw:.2f}) cohérent avec le beta moyen des pairs ({peer_avg_beta:.2f}, "
+            f"écart de {relative_gap:.0%}) -> retenu tel quel."
+        )
+
+    return beta_raw, (f"Beta brut ({beta_raw:.2f}) dans la plage plausible ; beta moyen des pairs "
+                       "indisponible pour contrôle croisé.")
+
+
 def project_fcf(base_revenue: float, growth_path: list[float], ebit_margin: float,
                  tax_rate: float, capex_pct_revenue: float, da_pct_revenue: float,
                  nwc_pct_revenue_change: float) -> pd.DataFrame:
@@ -113,80 +164,97 @@ def run_comps(target_metrics: dict, peers_df: pd.DataFrame) -> pd.DataFrame:
     })
 
 
-def comps_per_share(comps_df: pd.DataFrame, net_debt: float, shares_outstanding: float) -> list[float]:
+def comps_per_share(comps_df: pd.DataFrame, net_debt: float, shares_outstanding: float) -> dict[str, float]:
     """Convertit chaque valeur implicite des comps en valeur par action (EV -> equity pour EV/EBITDA et EV/Sales)."""
-    values = []
+    values = {}
     for _, row in comps_df.iterrows():
         if row["Méthode"] == "P/E":
-            values.append(row["Valeur implicite"] / shares_outstanding)
+            values[row["Méthode"]] = row["Valeur implicite"] / shares_outstanding
         else:
-            values.append((row["Valeur implicite"] - net_debt) / shares_outstanding)
+            values[row["Méthode"]] = (row["Valeur implicite"] - net_debt) / shares_outstanding
     return values
 
 
 def compute_football_field_data(fifty_two_week_low: float | None, fifty_two_week_high: float | None,
-                                 scenario_values: list[float], comps_values: list[float]) -> dict:
+                                 scenario_values: list[float], comps_values: dict[str, float]) -> dict:
     """Construit les fourchettes (low, high) par méthode pour le graphique football field."""
+    comps_vals = list(comps_values.values())
     data = {
         "DCF (Bear-Bull)": (min(scenario_values), max(scenario_values)),
-        "Comparables (min-max)": (min(comps_values), max(comps_values)),
+        "Comparables (min-max)": (min(comps_vals), max(comps_vals)),
     }
     if fifty_two_week_low and fifty_two_week_high:
         data["52 semaines (marché)"] = (fifty_two_week_low, fifty_two_week_high)
     return data
 
 
-DIVERGENCE_EXCLUSION_THRESHOLD = 0.30  # points d'écart vs le DCF au-delà desquels une
-                                        # méthode est jugée trop peu fiable pour entrer
-                                        # dans la moyenne (voir generate_recommendation)
+def compute_peer_implied_ebitda_margin(peers_df: pd.DataFrame) -> float | None:
+    """
+    Marge d'EBITDA implicite moyenne des pairs, dérivée du rapport entre leurs
+    multiples (EV/Sales ÷ EV/EBITDA = EBITDA/Sales) plutôt que d'une donnée de
+    marge directement disponible. Sert à documenter si la cible se paie une
+    prime ou une décote de multiple cohérente avec son propre profil de marge.
+    """
+    valid = peers_df.dropna(subset=["ev_to_ebitda", "ev_to_revenue"])
+    valid = valid[valid["ev_to_ebitda"] != 0]
+    if valid.empty:
+        return None
+    implied_margins = valid["ev_to_revenue"] / valid["ev_to_ebitda"]
+    return float(implied_margins.mean())
 
 
-def generate_recommendation(dcf_value: float, comps_avg: float, consensus_target: float | None,
+def build_valuation_summary(dcf_scenarios: dict, comps_values: dict, consensus: dict,
+                             week52_low: float | None, week52_high: float | None,
                              current_price: float | None) -> dict:
     """
-    Dérive une recommandation (Achat / Conserver / Vente) à partir de l'upside moyen
-    implicite des méthodes de valorisation disponibles par rapport au prix de marché.
+    Construit la fourchette de valorisation (football field) et un prix cible
+    en conservant TOUTES les méthodes disponibles — DCF (Bear/Base/Bull),
+    comparables (EV/EBITDA, EV/Sales, P/E) et consensus analystes — sans
+    filtrage mécanique d'aucune d'entre elles.
 
-    Le DCF sert d'ancre (c'est la méthode la plus rigoureuse, fondée sur les flux de
-    trésorerie réels de l'entreprise). Toute autre méthode (comparables, consensus) qui
-    s'écarte de l'upside du DCF de plus de DIVERGENCE_EXCLUSION_THRESHOLD (30 points de
-    pourcentage par défaut) est exclue de la moyenne plutôt que d'y être mélangée : une
-    méthode connue pour être bruyante (un multiple de pair faussé par un résultat
-    exceptionnel, par exemple) ne doit pas pouvoir, à elle seule, faire basculer la
-    recommandation dans un sens contraire à ce que suggèrent les flux de trésorerie.
+    Le prix cible est la moyenne simple du DCF (scénario Base), de la moyenne
+    des comparables et du consensus analystes, quand ils sont disponibles.
+    Un écart important entre le DCF (valeur intrinsèque par les flux) et les
+    comparables (réalité du marché) n'est pas éliminé : c'est un signal à
+    interpréter et à expliquer qualitativement dans la note de synthèse
+    (prime de leadership, structure de capital, biais de périmètre des
+    pairs...), pas une anomalie à corriger en amont du calcul.
 
-    Règle de décision sur la moyenne des méthodes retenues :
-        upside moyen > +15 %  -> Achat
-        upside moyen < -10 %  -> Vente
-        entre les deux        -> Conserver
-    C'est un point de départ mécanique et transparent, pas un jugement définitif : il ne
-    remplace pas une analyse qualitative des catalyseurs et risques propres à la thèse
-    d'investissement.
+    dcf_scenarios : dict {1: bear, 2: base, 3: bull}
+    comps_values  : dict {"EV/EBITDA": ..., "EV/Sales": ..., "P/E": ...} (valeur par action)
     """
-    if not current_price:
-        return {"label": "Conserver (Hold)", "avg_upside": None, "upsides": {}, "excluded": {}}
+    dcf_bear, dcf_base, dcf_bull = dcf_scenarios[1], dcf_scenarios[2], dcf_scenarios[3]
+    comps_avg = sum(comps_values.values()) / len(comps_values) if comps_values else None
 
-    dcf_upside = (dcf_value - current_price) / current_price
-    upsides = {"DCF": dcf_upside}
-    excluded = {}
+    target_components = {"DCF (Base)": dcf_base}
+    if comps_avg is not None:
+        target_components["Comparables (moyenne)"] = comps_avg
+    if consensus.get("target_mean"):
+        target_components["Consensus analystes"] = consensus["target_mean"]
+    target_price = sum(target_components.values()) / len(target_components)
 
-    candidates = {}
-    if comps_avg:
-        candidates["Comparables"] = (comps_avg - current_price) / current_price
-    if consensus_target:
-        candidates["Consensus analystes"] = (consensus_target - current_price) / current_price
+    range_points = [dcf_bear, dcf_bull]
+    range_points.extend(comps_values.values())
+    if consensus.get("target_low") and consensus.get("target_high"):
+        range_points.extend([consensus["target_low"], consensus["target_high"]])
+    if week52_low and week52_high:
+        range_points.extend([week52_low, week52_high])
 
-    for method, upside in candidates.items():
-        if abs(upside - dcf_upside) > DIVERGENCE_EXCLUSION_THRESHOLD:
-            excluded[method] = upside
-        else:
-            upsides[method] = upside
+    upside_vs_price = (target_price - current_price) / current_price if current_price else None
+    dcf_vs_comps_gap = ((comps_avg - dcf_base) / dcf_base) if comps_avg else None
+    dcf_vs_consensus_gap = (
+        (consensus["target_mean"] - dcf_base) / dcf_base if consensus.get("target_mean") else None
+    )
 
-    avg_upside = sum(upsides.values()) / len(upsides)
-    if avg_upside > 0.15:
-        label = "Achat (Buy)"
-    elif avg_upside < -0.10:
-        label = "Vente (Sell)"
-    else:
-        label = "Conserver (Hold)"
-    return {"label": label, "avg_upside": avg_upside, "upsides": upsides, "excluded": excluded}
+    return {
+        "target_price": target_price,
+        "target_components": target_components,
+        "range_low": min(range_points),
+        "range_high": max(range_points),
+        "dcf_bear": dcf_bear, "dcf_base": dcf_base, "dcf_bull": dcf_bull,
+        "comps_avg": comps_avg, "comps_values": comps_values,
+        "consensus_mean": consensus.get("target_mean"),
+        "upside_vs_price": upside_vs_price,
+        "dcf_vs_comps_gap": dcf_vs_comps_gap,
+        "dcf_vs_consensus_gap": dcf_vs_consensus_gap,
+    }

@@ -9,70 +9,82 @@
     "CMG",
     "DRI"
   ],
-  "current_price": 248.24,
+  "current_price": 236.5,
   "dcf": {
-    "value_per_share_base": 281.35264143811105,
-    "enterprise_value_m": 253136.82000469495,
-    "equity_value_m": 199096.82000469495,
-    "wacc": 0.054031223978210655,
-    "ebit_margin_base": 0.4596573584278114,
+    "value_per_share_base": 196.84657451494314,
+    "enterprise_value_m": 193336.80864387902,
+    "equity_value_m": 139296.80864387902,
+    "wacc": 0.06458659046576373,
+    "ebit_margin_base": 0.4596979495533564,
     "terminal_growth_base": 0.02
   },
   "scenarios": {
-    "bear": 170.58945483622927,
-    "base": 281.35264143811105,
-    "bull": 469.2505907907117
+    "bear": 123.16394641194393,
+    "base": 196.84657451494314,
+    "bull": 302.93564388536964
   },
   "comps": {
-    "average_value_per_share": 168.89586583105896,
+    "average_value_per_share": 164.55891045372437,
     "methods": [
       {
         "Méthode": "EV/EBITDA",
-        "Multiple médian peers": 14.989,
-        "Valeur implicite": 220008542000.0
+        "Multiple médian peers": 14.49,
+        "Valeur implicite": 212684220000.0
       },
       {
         "Méthode": "EV/Sales",
-        "Multiple médian peers": 3.341,
-        "Valeur implicite": 89822785000.0
+        "Multiple médian peers": 3.312,
+        "Valeur implicite": 89043120000.0
       },
       {
         "Méthode": "P/E",
-        "Multiple médian peers": 18.311558,
-        "Valeur implicite": 156801871154.0
+        "Multiple médian peers": 18.182741,
+        "Valeur implicite": 155698811183.0
       }
     ]
   },
   "consensus": {
-    "target_mean": 311.5484,
-    "target_median": 305.0,
+    "target_mean": 300.27585,
+    "target_median": 295.0,
     "target_low": 250.0,
-    "target_high": 407.0,
-    "num_analysts": 31,
+    "target_high": 390.0,
+    "num_analysts": 29,
     "recommendation": "buy"
   },
-  "recommendation": {
-    "label": "Achat (Buy)",
-    "avg_upside": 0.19420931646412953,
-    "upsides": {
-      "DCF": 0.13338962873876506,
-      "Consensus analystes": 0.25502900418949404
+  "valuation_summary": {
+    "target_price": 220.5604449895558,
+    "target_components": {
+      "DCF (Base)": 196.84657451494314,
+      "Comparables (moyenne)": 164.55891045372437,
+      "Consensus analystes": 300.27585
     },
-    "excluded": {
-      "Comparables": -0.3196267087050477
-    }
+    "range_low": 49.46448046021525,
+    "range_high": 390.0,
+    "dcf_bear": 123.16394641194393,
+    "dcf_base": 196.84657451494314,
+    "dcf_bull": 302.93564388536964,
+    "comps_avg": 164.55891045372437,
+    "comps_values": {
+      "EV/EBITDA": 224.18727017237575,
+      "EV/Sales": 49.46448046021525,
+      "P/E": 220.0249807285821
+    },
+    "consensus_mean": 300.27585,
+    "upside_vs_price": -0.0673976956044152,
+    "dcf_vs_comps_gap": -0.16402451574674334,
+    "dcf_vs_consensus_gap": 0.52543091359309
   },
   "football_field": {
     "DCF (Bear-Bull)": [
-      170.58945483622927,
-      469.2505907907117
+      123.16394641194393,
+      302.93564388536964
     ],
     "Comparables (min-max)": [
-      50.56625755009353,
-      234.5375867190191
+      49.46448046021525,
+      224.18727017237575
     ],
     "52 semaines (marché)": [
-      247.65,
+      234.03,
       341.75
     ]
   }

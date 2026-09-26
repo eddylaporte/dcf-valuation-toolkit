@@ -48,23 +48,45 @@ def get_latest_value(df: pd.DataFrame, candidates: list[str], default=np.nan):
     return default
 
 
-def compute_historical_ebit_margin(income_stmt: pd.DataFrame, lookback_years: int = 3) -> float | None:
+def get_ebit_margin_trend(income_stmt: pd.DataFrame, lookback_years: int = 3) -> list[tuple[str, float]]:
     """
-    Calcule la marge d'EBIT moyenne sur les derniers exercices disponibles,
-    à partir des données réelles, plutôt que d'utiliser une hypothèse arbitraire.
-    Retourne None si les lignes nécessaires sont absentes.
+    Retourne la marge d'EBIT année par année (label d'exercice, marge) sur les
+    derniers exercices disponibles — pour documenter explicitement si la
+    moyenne utilisée dans le DCF masque une tendance haussière ou baissière,
+    plutôt que de ne présenter qu'un chiffre unique.
     """
     ebit_row = get_row(income_stmt, ["Operating Income", "OperatingIncome", "EBIT"])
     revenue_row = get_row(income_stmt, ["Total Revenue", "TotalRevenue"])
     if ebit_row is None or revenue_row is None:
-        return None
-
+        return []
     merged = pd.DataFrame({"ebit": ebit_row, "revenue": revenue_row}).dropna()
     if merged.empty:
-        return None
-
+        return []
     merged = merged.tail(lookback_years)
-    margins = merged["ebit"] / merged["revenue"]
-    logger.info("Marges d'EBIT historiques (%d derniers exercices) : %s",
-                len(margins), ", ".join(f"{m:.1%}" for m in margins))
-    return float(margins.mean())
+    return [(str(year), float(row["ebit"] / row["revenue"])) for year, row in merged.iterrows()]
+
+
+def compute_historical_ebit_margin(income_stmt: pd.DataFrame, lookback_years: int = 3,
+                                    weighted: bool = True) -> float | None:
+    """
+    Calcule la marge d'EBIT retenue sur les derniers exercices disponibles, à
+    partir des données réelles — jamais une hypothèse arbitraire.
+
+    Par défaut (weighted=True), la moyenne est pondérée en donnant plus de poids
+    aux exercices récents (poids croissants 1, 2, 3...) plutôt qu'une moyenne
+    simple : si la marge suit une tendance marquée, une moyenne simple la sous-
+    ou sur-estime systématiquement par rapport à la trajectoire réelle de
+    l'entreprise. La pondération corrige ce biais au lieu de se contenter de le
+    signaler. Passer weighted=False pour obtenir la moyenne simple (utile pour
+    comparaison ou audit).
+
+    Retourne None si les lignes nécessaires sont absentes.
+    """
+    trend = get_ebit_margin_trend(income_stmt, lookback_years)
+    if not trend:
+        return None
+    margins = [m for _, m in trend]
+    if weighted and len(margins) > 1:
+        weights = list(range(1, len(margins) + 1))
+        return float(sum(m * w for m, w in zip(margins, weights)) / sum(weights))
+    return float(sum(margins) / len(margins))
